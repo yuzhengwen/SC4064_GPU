@@ -5,6 +5,7 @@
 #PBS -q normal
 #PBS -j oe
 #PBS -o vec_add.out
+#PBS -P personal
 
 # Change to the directory where job was submitted
 cd $PBS_O_WORKDIR
