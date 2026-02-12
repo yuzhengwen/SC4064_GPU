@@ -1,0 +1,35 @@
+# Makefile for Problem 1: Vector Addition
+# SC4064 GPU Programming Assignment 1
+
+# Compiler
+NVCC = nvcc
+
+# Compiler flags
+# -O3: Optimization level 3
+# -arch=sm_80: Target NVIDIA A100 architecture (compute capability 8.0)
+# Use -arch=sm_75 for T4, -arch=sm_86 for RTX 30 series
+NVCCFLAGS = -O3 -arch=sm_80
+
+# Target executable
+TARGET = vector_add
+
+# Source file
+SOURCE = problem1_vector_add.cu
+
+# Default target
+all: $(TARGET)
+
+# Compile the CUDA program
+$(TARGET): $(SOURCE)
+	$(NVCC) $(NVCCFLAGS) -o $(TARGET) $(SOURCE)
+
+# Run the program
+run: $(TARGET)
+	./$(TARGET)
+
+# Clean up compiled files
+clean:
+	rm -f $(TARGET)
+
+# Phony targets (not actual files)
+.PHONY: all run clean
