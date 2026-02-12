@@ -1,18 +1,19 @@
 #!/bin/bash
-#SBATCH --job-name=vec_add          # Job name
-#SBATCH --partition=gpu             # Partition (queue) name
-#SBATCH --nodes=1                   # Number of nodes
-#SBATCH --ntasks=1                  # Number of tasks (processes)
-#SBATCH --gres=gpu:1                # Number of GPUs per node
-#SBATCH --time=00:15:00             # Time limit (HH:MM:SS)
-#SBATCH --mem=16GB                  # Memory per node
-#SBATCH --output=vec_add_%j.out     # Standard output file (%j = job ID)
-#SBATCH --error=vec_add_%j.err      # Standard error file
+#PBS -N vec_add
+#PBS -l select=1:ncpus=1:ngpus=1:mem=8GB
+#PBS -l walltime=00:15:00
+#PBS -q gpu
+#PBS -j oe
+#PBS -o vec_add.out
+
+# Change to the directory where job was submitted
+cd $PBS_O_WORKDIR
 
 # Print job information
 echo "Job started on $(date)"
 echo "Running on node: $(hostname)"
-echo "Job ID: $SLURM_JOB_ID"
+echo "Job ID: $PBS_JOBID"
+echo "Working directory: $PBS_O_WORKDIR"
 echo "================================"
 echo ""
 
@@ -33,8 +34,7 @@ echo ""
 
 # Compile the program
 echo "Compiling..."
-make clean
-make
+nvcc -O3 vector_add.cu -o vector_add
 echo ""
 
 # Run the program
