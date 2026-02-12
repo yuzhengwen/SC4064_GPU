@@ -16,7 +16,7 @@ echo "================================"
 echo ""
 
 module purge
-module load cuda/11.6
+module load cuda
 
 echo "CUDA Version:"
 nvcc --version
