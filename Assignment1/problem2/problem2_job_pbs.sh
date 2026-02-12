@@ -2,9 +2,10 @@
 #PBS -N mat_add
 #PBS -l select=1:ncpus=1:ngpus=1:mem=16GB
 #PBS -l walltime=00:15:00
-#PBS -q gpu
 #PBS -j oe
 #PBS -o mat_add.out
+#PBS -P personal
+#PBS -q normal
 
 cd $PBS_O_WORKDIR
 
