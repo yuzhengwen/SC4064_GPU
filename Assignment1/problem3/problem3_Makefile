@@ -1,8 +1,8 @@
 NVCC = nvcc
 NVCCFLAGS = -O3 -arch=sm_80
 
-TARGET = vector_add
-SOURCE = vector_add.cu
+TARGET = matrix_mul
+SOURCE = matrix_mul.cu
 
 all: $(TARGET)
 
