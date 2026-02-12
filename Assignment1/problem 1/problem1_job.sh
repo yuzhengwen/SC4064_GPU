@@ -2,7 +2,7 @@
 #PBS -N vec_add
 #PBS -l select=1:ncpus=1:ngpus=1:mem=8GB
 #PBS -l walltime=00:15:00
-#PBS -q gpu
+#PBS -q normal
 #PBS -j oe
 #PBS -o vec_add.out
 
