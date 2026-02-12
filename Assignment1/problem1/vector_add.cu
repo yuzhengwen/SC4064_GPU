@@ -12,16 +12,14 @@
 #include <stdlib.h>
 #include <cuda_runtime.h>
 
-// Error checking macro from Week 2 lecture
-#define CUDA_CHECK(call) \
-{ \
+// Error checking macro
+#define CUDA_CHECK(call) do { \
     cudaError_t err = call; \
     if (err != cudaSuccess) { \
-        fprintf(stderr, "CUDA error in %s:%d: %s\n", \
-                __FILE__, __LINE__, cudaGetErrorString(err)); \
-        exit(EXIT_FAILURE); \
+        fprintf(stderr, "CUDA error: %s (at line %s:%d)\n",cudaGetErrorString(err), __FILE__, __LINE__); \
+        exit(err); \
     } \
-}
+} while (0)
 
 /*
  * CUDA Kernel: Vector Addition
@@ -47,20 +45,14 @@ __global__ void vectorAdd(const float *A, const float *B, float *C, int N) {
     }
 }
 
-/*
- * Initialize vector with random values in range [0.0, 100.0]
- */
+// create vector with random values in range [0.0, 100.0]
 void initVector(float *vec, int N) {
     for (int i = 0; i < N; i++) {
         vec[i] = (float)rand() / (float)RAND_MAX * 100.0f;
     }
 }
 
-/*
- * Verify results by checking a few elements
- * In production, you'd check all elements, but for N=2^30, 
- * checking a sample is more practical
- */
+// Verify the result by checking a few random elements
 void verifyResult(const float *A, const float *B, const float *C, int N) {
     const int numChecks = 1000;
     for (int i = 0; i < numChecks; i++) {

@@ -17,15 +17,14 @@
 #include <cuda_runtime.h>
 #include <math.h>
 
-#define CUDA_CHECK(call) \
-{ \
+// Error checking macro
+#define CUDA_CHECK(call) do { \
     cudaError_t err = call; \
     if (err != cudaSuccess) { \
-        fprintf(stderr, "CUDA error in %s:%d: %s\n", \
-                __FILE__, __LINE__, cudaGetErrorString(err)); \
-        exit(EXIT_FAILURE); \
+        fprintf(stderr, "CUDA error: %s (at line %s:%d)\n",cudaGetErrorString(err), __FILE__, __LINE__); \
+        exit(err); \
     } \
-}
+} while (0)
 
 /*
  * CUDA Kernel: Matrix Multiplication (Naive Implementation)
