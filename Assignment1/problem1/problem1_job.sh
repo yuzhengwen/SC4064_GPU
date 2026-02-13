@@ -39,7 +39,7 @@ nvcc -O3 vector_add.cu -o vector_add
 echo ""
 
 # run prog
-echo "Running vector addition..."
+echo "Running vector addition executable..."
 echo "================================"
 ./vector_add
 echo ""

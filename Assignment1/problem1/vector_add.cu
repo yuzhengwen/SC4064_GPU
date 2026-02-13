@@ -51,7 +51,6 @@ int main() {
     const size_t bytes = N * sizeof(float);
     
     printf("Vector Addition\n");
-    printf("===============\n");
     printf("Vector size: %d elements (%.2f GB per vector)\n", N, bytes / 1e9);
     printf("\n");
     
