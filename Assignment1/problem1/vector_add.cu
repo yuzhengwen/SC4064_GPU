@@ -14,7 +14,7 @@
 // Each thread computes one element: C[i] = A[i] + B[i]
 // Global thread ID = blockIdx.x * blockDim.x + threadIdx.x => each thread id from 0 to N-1
 __global__ void vectorAdd(const float *A, const float *B, float *C, int N) {
-    // Calculate global thread index
+    // Calculate global 1d thread index
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     
     // If more threads than N size
@@ -80,6 +80,7 @@ int main() {
         
         // Calculate grid size (number of blocks needed) = (N + blockSize - 1) / blockSize
         // This ensures we have enough threads to cover all N elements
+        // equivalent to N / blockSize (rounded UP)
         int gridSize = (N + blockSize - 1) / blockSize;
         
         printf("\nBlock size: %d threads\n", blockSize);
