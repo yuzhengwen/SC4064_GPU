@@ -59,7 +59,7 @@ void initMatrixConstant(float *mat, int rows, int cols, float val)
 
 int main()
 {
-    // Matrix dimensions (square matrices)
+    // matrix dimensions
     const int M = 8192;
     const int K = 8192;
     const int N = 8192;
@@ -75,7 +75,6 @@ int main()
     printf("Matrix C: %d × %d (%.2f GB)\n", M, N, bytesC / 1e9);
     printf("\n");
 
-    // Allocate host memory
     printf("Allocating host memory...\n");
     float *h_A = (float *)malloc(bytesA);
     float *h_B = (float *)malloc(bytesB);
@@ -87,7 +86,6 @@ int main()
         return 1;
     }
 
-    // Initialize matrices
     printf("Initializing matrices...\n");
     srand(12345);
     initMatrix(h_A, M, K, 1.0f); // Range [0, 1]
