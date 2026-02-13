@@ -74,9 +74,6 @@ int main()
     int blockSizes[] = {32, 64, 128, 256};
     int numTests = sizeof(blockSizes) / sizeof(blockSizes[0]);
 
-    printf("\nTesting different block sizes:\n");
-    printf("================================================\n");
-
     for (int i = 0; i < numTests; i++)
     {
         int blockSize = blockSizes[i];

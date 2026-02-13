@@ -68,8 +68,7 @@ int main()
     const size_t bytesB = K * N * sizeof(float);
     const size_t bytesC = M * N * sizeof(float);
 
-    printf("Matrix Multiplication: C = A × B\n");
-    printf("=================================\n");
+    printf("Matrix Multiplication\n");
     printf("Matrix A: %d × %d (%.2f GB)\n", M, K, bytesA / 1e9);
     printf("Matrix B: %d × %d (%.2f GB)\n", K, N, bytesB / 1e9);
     printf("Matrix C: %d × %d (%.2f GB)\n", M, N, bytesC / 1e9);
@@ -88,8 +87,8 @@ int main()
 
     printf("Initializing matrices...\n");
     srand(12345);
-    initMatrix(h_A, M, K, 1.0f); // Range [0, 1]
-    initMatrix(h_B, K, N, 1.0f); // Range [0, 1]
+    initMatrix(h_A, M, K, 1.0f); // [0, 1]
+    initMatrix(h_B, K, N, 1.0f); // [0, 1]
     initMatrixConstant(h_C, M, N, 0.0f);
 
     printf("Allocating device memory...\n");
@@ -114,9 +113,6 @@ int main()
     };
     int numConfigs = sizeof(blockSizes) / sizeof(blockSizes[0]);
 
-    printf("\nTesting different 2D block sizes:\n");
-    printf("================================================\n");
-
     for (int config = 0; config < numConfigs; config++)
     {
         int blockX = blockSizes[config][0];
@@ -135,9 +131,8 @@ int main()
         printf("Total threads: %d\n",
                gridSize.x * gridSize.y * blockX * blockY);
         printf("\nThread Index Calculation:\n");
-        printf("  row = blockIdx.y * %d + threadIdx.y\n", blockY);
-        printf("  col = blockIdx.x * %d + threadIdx.x\n", blockX);
-        printf("  C[row][col] = Σ(A[row][k] * B[k][col]) for k=0 to %d\n", K - 1);
+        printf("i = blockIdx.y * %d + threadIdx.y\n", blockY);
+        printf("j = blockIdx.x * %d + threadIdx.x\n", blockX);
         printf("\n");
 
         // Warm-up run

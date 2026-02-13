@@ -104,18 +104,15 @@ int main()
     CUDA_CHECK(cudaEventCreate(&start));
     CUDA_CHECK(cudaEventCreate(&stop));
 
-    printf("\n================================================\n");
     printf("Configuration 1: 1D Grid with 1D Blocks\n");
-    printf("================================================\n\n");
 
     {
         int blockSize = 256;
         int gridSize = (N + blockSize - 1) / blockSize;
 
-        printf("Configuration:\n");
-        printf("  Block size: %d threads\n", blockSize);
-        printf("  Grid size:  %d blocks\n", gridSize);
-        printf("  Total threads: %d\n\n", gridSize * blockSize);
+        printf("Block size: %d threads\n", blockSize);
+        printf("Grid size:  %d blocks\n", gridSize);
+        printf("Total threads: %d\n\n", gridSize * blockSize);
 
         // Warm-up run (same as before)
         matrixAdd1D<<<gridSize, blockSize>>>(d_A, d_B, d_C, rows, cols);
@@ -139,20 +136,18 @@ int main()
         printf("  GFLOPS:         %.2f\n", gflops);
     }
 
-    printf("\n================================================\n");
     printf("Configuration 2: 2D Grid with 2D Blocks\n");
-    printf("================================================\n\n");
 
     {
         dim3 blockSize(16, 16); // 16x16 = 256 threads per block
         dim3 gridSize((cols + blockSize.x - 1) / blockSize.x,
                       (rows + blockSize.y - 1) / blockSize.y);
 
-        printf("  Block size: (%d, %d) = %d threads\n",
+        printf("Block size: (%d, %d) = %d threads\n",
                blockSize.x, blockSize.y, blockSize.x * blockSize.y);
-        printf("  Grid size:  (%d, %d) = %d blocks\n",
+        printf("Grid size:  (%d, %d) = %d blocks\n",
                gridSize.x, gridSize.y, gridSize.x * gridSize.y);
-        printf("  Total threads: %d\n\n",
+        printf("Total threads: %d\n\n",
                gridSize.x * gridSize.y * blockSize.x * blockSize.y);
 
         // Warm-up run
