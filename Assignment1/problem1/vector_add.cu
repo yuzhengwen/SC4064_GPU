@@ -30,21 +30,6 @@ void initVector(float *vec, int N) {
     }
 }
 
-// Verify the result by checking a few random elements
-void verifyResult(const float *A, const float *B, const float *C, int N) {
-    const int numChecks = 1000;
-    for (int i = 0; i < numChecks; i++) {
-        int idx = rand() % N;
-        float expected = A[idx] + B[idx];
-        if (fabs(C[idx] - expected) > 1e-5) {
-            fprintf(stderr, "Verification failed at index %d: expected %f, got %f\n", 
-                    idx, expected, C[idx]);
-            return;
-        }
-    }
-    printf("✓ Verification passed (checked %d random elements)\n", numChecks);
-}
-
 int main() {
     // Vector size: 2^30 elements
     const int N = 1 << 30; 
@@ -131,14 +116,6 @@ int main() {
         CUDA_CHECK(cudaEventDestroy(start));
         CUDA_CHECK(cudaEventDestroy(stop));
     }
-    
-    // // Copy result back to CPU for verification
-    // printf("\nCopying result back to host...\n");
-    // CUDA_CHECK(cudaMemcpy(h_C, d_C, bytes, cudaMemcpyDeviceToHost));
-    
-    // // Verify result
-    // printf("Verifying result...\n");
-    // verifyResult(h_A, h_B, h_C, N);
     
     // Clean up
     printf("\nCleaning up...\n");
