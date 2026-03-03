@@ -111,7 +111,7 @@ int verify(int *a, int *b, int n)
 // ---------------------------------------------------------------------------
 int main()
 {
-    int N = 1 << 20; // 1M elements - same as your baseline run
+    int N = 1 << 25; // 1M elements - same as your baseline run
     size_t bytes = N * sizeof(int);
 
     printf("=================================================\n");

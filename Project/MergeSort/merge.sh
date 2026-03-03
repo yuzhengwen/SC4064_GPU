@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -N merge
-#PBS -l select=1:ncpus=1:ngpus=1:mem=4GB
+#PBS -l select=1:ncpus=1:ngpus=1:mem=8GB
 #PBS -l walltime=00:15:00
 #PBS -q normal
 #PBS -j oe
