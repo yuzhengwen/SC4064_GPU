@@ -7,43 +7,35 @@
 #PBS -o vec_add.out
 #PBS -P personal
 
-# Change to the directory where job was submitted
+# cd to working dir of submission
 cd $PBS_O_WORKDIR
 
-# Print job information
+# some basic info
 echo "Job started on $(date)"
 echo "Running on node: $(hostname)"
 echo "Job ID: $PBS_JOBID"
-echo "Working directory: $PBS_O_WORKDIR"
-echo "================================"
-echo ""
 
-# Load required modules
 module purge
 module load cuda
 
-# Print CUDA information
 echo "CUDA Version:"
 nvcc --version
 echo ""
 
 echo "GPU Information:"
 nvidia-smi
-echo ""
 echo "================================"
-echo ""
 
-# Compile the program
+# compile with CUDA compiler
 echo "Compiling..."
+# add flag for aggressive optimization
 nvcc -O3 vector_add.cu -o vector_add
-echo ""
 
-# Run the program
-echo "Running vector addition..."
-echo "================================"
+# run prog
+echo "Running vector addition executable..."
 ./vector_add
 echo ""
 
-# Job completion
-echo "================================"
+# complete
+echo ""
 echo "Job completed on $(date)"

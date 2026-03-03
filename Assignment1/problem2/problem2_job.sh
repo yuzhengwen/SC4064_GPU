@@ -9,11 +9,10 @@
 
 cd $PBS_O_WORKDIR
 
+# some basic info
 echo "Job started on $(date)"
 echo "Running on node: $(hostname)"
 echo "Job ID: $PBS_JOBID"
-echo "================================"
-echo ""
 
 module purge
 module load cuda
@@ -24,18 +23,12 @@ echo ""
 
 echo "GPU Information:"
 nvidia-smi
-echo ""
 echo "================================"
-echo ""
 
-echo "Compiling..."
+# Aggressive optimized compilation
 nvcc -O3 matrix_add.cu -o matrix_add
-echo ""
 
-echo "Running matrix addition..."
-echo "================================"
+echo "Running matrix addition executable..."
 ./matrix_add
 echo ""
-
-echo "================================"
 echo "Job completed on $(date)"
