@@ -92,7 +92,7 @@ void mergeSort(int arr[], int left, int right)
 int main()
 {
     // create a large array of random integers
-    int N = 1 << 20;
+    int N = 1 << 25;
     int *arr = (int *)malloc(N * sizeof(int));
     for (int i = 0; i < N; i++)
     {

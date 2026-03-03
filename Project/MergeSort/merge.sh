@@ -1,10 +1,10 @@
 #!/bin/bash
-#PBS -N vec_add
-#PBS -l select=1:ncpus=1:ngpus=1:mem=8GB
+#PBS -N merge
+#PBS -l select=1:ncpus=1:ngpus=1:mem=4GB
 #PBS -l walltime=00:15:00
 #PBS -q normal
 #PBS -j oe
-#PBS -o vec_add.out
+#PBS -o merge.out
 #PBS -P personal
 
 # Change to the directory where job was submitted
