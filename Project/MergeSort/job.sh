@@ -32,7 +32,7 @@ echo ""
 echo "Compiling..."
 nvcc -O3 -std=c++14 \
     main.cu \
-    cpu_sort.c \
+    cpu_sort.cu \
     gpu_naive.cu \
     gpu_smem.cu \
     gpu_thrust.cu \
