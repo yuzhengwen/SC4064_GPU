@@ -1,10 +1,11 @@
 #!/bin/bash
 #PBS -N wave2d_assignment2
 #PBS -q normal
-#PBS -l select=1:ncpus=10:mem=20GB:ngpus=1:gpu_model=A100
+#PBS -l select=1:ncpus=1:ngpus=1:mem=8GB
 #PBS -l walltime=00:30:00
 #PBS -j oe
 #PBS -o wave2d_output.log
+#PBS -P personal
 
 # ============================================================
 # SC4064 Assignment 2 — ASPIRE 2A Job Script
@@ -18,7 +19,7 @@ module load cuda/12.x
 
 # Compile
 echo "=== Compiling ==="
-nvcc -O3 -arch=sm_80 -lcusparse -lcublas -o wave2d wave2d.cu
+nvcc -O3 -arch=sm_80 -lcusparse -lcublas -o wave2d wave.cu
 if [ $? -ne 0 ]; then echo "Compilation failed"; exit 1; fi
 echo "Compilation OK"
 
