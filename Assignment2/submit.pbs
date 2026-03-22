@@ -1,0 +1,43 @@
+#!/bin/bash
+#PBS -N wave2d_assignment2
+#PBS -q normal
+#PBS -l select=1:ncpus=10:mem=20GB:ngpus=1:gpu_model=A100
+#PBS -l walltime=00:30:00
+#PBS -j oe
+#PBS -o wave2d_output.log
+
+# ============================================================
+# SC4064 Assignment 2 — ASPIRE 2A Job Script
+# Runs all domain sizes for performance scaling study
+# ============================================================
+
+cd $PBS_O_WORKDIR
+
+# Load modules (ASPIRE 2A)
+module load cuda/12.x
+
+# Compile
+echo "=== Compiling ==="
+nvcc -O3 -arch=sm_80 -lcusparse -lcublas -o wave2d wave2d.cu
+if [ $? -ne 0 ]; then echo "Compilation failed"; exit 1; fi
+echo "Compilation OK"
+
+# Clear previous CSV
+rm -f perf_summary.csv
+echo "L,N,steps,a1_ms,a2_ms,b_ms" > perf_summary.csv
+
+# Run scaling study: L = 1, 2, 4, 8
+for L in 1 2 4 8; do
+    echo ""
+    echo "=== Running domain L = $L ==="
+    ./wave2d $L
+done
+
+echo ""
+echo "=== All runs complete ==="
+echo "Performance summary:"
+cat perf_summary.csv
+
+# Optional: run Python visualization (requires matplotlib)
+# module load python/3.x
+# python visualize.py
