@@ -8,21 +8,19 @@
 #include <cusparse.h>
 #include <cublas_v2.h>
 
- /* ============================= PARAMETERS ============================= */
-
 #define C        1.0       // Wave speed
 #define DX       0.01      // Grid spacing (dx = dy)
 #define DT       0.005     // Time step
 #define T_STEPS  200       // Number of time steps to simulate
 #define TILE     16        // Shared memory tile dimension
 
-/* Derived: lambda^2 = (c*dt/dx)^2 */
+// Derived: lambda^2 = (c*dt/dx)^2 
 #define LAMBDA2  ((C*DT/DX)*(C*DT/DX))
 
-/* Stability check: lambda <= 1/sqrt(2) ~ 0.707 */
+// Stability check: lambda <= 1/sqrt(2) ~ 0.707 
 #define LAMBDA   (C*DT/DX)
 
-/* CUDA error checking macro */
+// CUDA error checking macro */
 #define CUDA_CHECK(call) do {                                          \
     cudaError_t err = (call);                                          \
     if (err != cudaSuccess) {                                          \
@@ -40,8 +38,6 @@
         exit(EXIT_FAILURE);                                            \
     }                                                                  \
 } while(0)
-
-/* ============================= UTILITIES ============================== */
 
 /*
  * Initialize wave field with u(0,x,y) = sin(pi*x)*sin(pi*y)
@@ -73,7 +69,7 @@ void save_snapshot(const double* u_host, int N, int step) {
     printf("  Saved snapshot: %s\n", fname);
 }
 
-/* Print GPU device info */
+// for checking GPU properties and limits to consider in report
 void print_device_info() {
     cudaDeviceProp prop;
     CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
@@ -82,17 +78,18 @@ void print_device_info() {
     printf("  Memory: %.1f GB\n", prop.totalGlobalMem / 1e9);
     printf("  Memory bus width: %d bits\n", prop.memoryBusWidth);
     printf("  Max threads/block: %d\n\n", prop.maxThreadsPerBlock);
+    printf("  Max blocks per SM:      %d\n", prop.maxBlocksPerMultiProcessor);
+    printf("  Max warps per SM:       %d\n", prop.maxThreadsPerMultiProcessor / 32);
+    printf("  Registers per SM:       %d\n", prop.regsPerMultiprocessor);
+    printf("  Shared mem per SM:      %zu KB\n", prop.sharedMemPerMultiprocessor / 1024);
+    printf("  L2 cache size:          %d KB\n", prop.l2CacheSize / 1024);
+    printf("  Warp size:              %d\n", prop.warpSize);
 }
 
-/* ======================= PART A1: GLOBAL MEMORY ======================= */
+/* ======================= A1: GLOBAL MEMORY ======================= */
 
-/*
- * A1 - Global Memory Stencil Kernel
- *
- * Implements the 5-point stencil directly from global memory.
- * Each thread computes one interior grid point using:
- *   u_next[i,j] = 2*u[i,j] - u_prev[i,j] + lambda^2 * Laplacian(u)[i,j]
- */
+// Each thread computes one interior grid point using:
+// u_next[i, j] = 2 * u[i, j] - u_prev[i, j] + lambda ^ 2 * Laplacian(u)[i, j]
 // Thread(5, 5) reads: u[4, 5], u[6, 5], u[5, 4], u[5, 6], u[5, 5]
 // Thread(5, 6) reads: u[4, 6], u[6, 6], u[5, 5], u[5, 7], u[5, 6] (5,5 repeated)
 // repeated memory access (each neighbor read multiple times by adjacent threads).
@@ -102,27 +99,26 @@ __global__ void kernel_a1_global(
     const double* __restrict__ u_prev,
     int N, double lambda2)
 {
-    /* Compute global (i,j) for this thread */
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-    /* Enforce Dirichlet BC: boundary nodes stay at 0 */
+    // Enforce Dirichlet BC: boundary nodes stay at 0 
     if (i == 0 || i >= N - 1 || j == 0 || j >= N - 1) return;
 
     int idx = i * N + j;
 
-    /* 5-point Laplacian: u[i+1,j] + u[i-1,j] + u[i,j+1] + u[i,j-1] - 4*u[i,j] */
+    // 5-point Laplacian: u[i+1,j] + u[i-1,j] + u[i,j+1] + u[i,j-1] - 4*u[i,j] 
     double lap = u_curr[(i + 1) * N + j]
         + u_curr[(i - 1) * N + j]
         + u_curr[i * N + (j + 1)]
         + u_curr[i * N + (j - 1)]
         - 4.0 * u_curr[idx];
 
-    /* Time update: leapfrog scheme */
+    // Time update: leapfrog scheme 
     u_next[idx] = 2.0 * u_curr[idx] - u_prev[idx] + lambda2 * lap;
 }
 
-/* ==================== PART A2: SHARED MEMORY TILED =================== */
+/* ==================== A2: SHARED MEMORY TILED =================== */
 
 /*
  * A2 - Shared Memory Tiled Stencil Kernel
@@ -178,8 +174,8 @@ __global__ void kernel_a2_shared(
         + s_curr[si][sj + 1] + s_curr[si][sj - 1]
         - 4.0 * s_curr[si][sj];
 
-    /* u_prev[i,j] is read once per thread — no benefit from shared memory */
-    /* u_curr[i,j] is already in s_curr[si][sj] — no extra global read */
+    /* u_prev[i,j] is read once per thread � no benefit from shared memory */
+    /* u_curr[i,j] is already in s_curr[si][sj] � no extra global read */
     u_next[i * N + j] = 2.0 * s_curr[si][sj] - u_prev[i * N + j] + lambda2 * lap;
 }
 
@@ -248,7 +244,7 @@ void build_laplacian_csr(
 }
 
 /*
- * Small kernel to apply the leapfrog time update after SpMV:
+ * Apply the leapfrog time update after SpMV:
  *   u_next[k] = 2*u_curr[k] - u_prev[k] + lambda2 * Lu[k]
  * Lu is the result of SpMV (L * u_curr), stored in u_next temporarily.
  */
@@ -498,16 +494,12 @@ double run_cusparse_solver(int N, int save_snaps) {
 }
 
 /* ======================== MAIN FUNCTION =============================== */
-
 int main(int argc, char** argv) {
-    /* Domain scale factor L: N = L / DX */
-    double L = 8.0;
+    double L = 8.0; // Domain scale factor L: N = L / DX 
     if (argc > 1) L = atof(argv[1]);
 
-    int N = (int)(L / DX) + 1;  /* Grid points per dimension */
+    int N = (int)(L / DX) + 1; 
 
-    printf("\n================================================\n");
-    printf("SC4064 Assignment 2: 2D Wave Equation Solver\n");
     printf("  Domain: [0,%.0f]x[0,%.0f] | N=%d | Steps=%d\n",
         L, L, N, T_STEPS);
     printf("  lambda=%.4f (CFL, must be <= 0.707)\n", LAMBDA);
