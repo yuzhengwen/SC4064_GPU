@@ -108,7 +108,7 @@ __global__ void sobelKernel(
 #undef FETCH
 
     float mag = sqrtf(gx*gx + gy*gy);
-    out[y * width + x] = (uint8_t)min((int)mag, 255);
+    out[y * width + x] = (uint8_t)min(max((int)roundf(mag), 0), 255);
 }
 
 
