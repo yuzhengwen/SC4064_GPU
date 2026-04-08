@@ -54,14 +54,16 @@ static void process_batch_on_device(std::vector<ImageEntry> &sub_batch, int devi
     // One stream per image: all operations for image i are serialised on
     // stream[i], but different images' streams run concurrently on the GPU.
 
-    std::vector<cudaStream_t> streams(n_images);
-    for (int i = 0; i < n_images; i++)
-        cudaStreamCreate(&streams[i]);
     // TODO: Create n_images CUDA streams.
     //   std::vector<cudaStream_t> streams(n_images);
     //   for (int i = 0; i < n_images; i++) cudaStreamCreate(&streams[i]);
+    std::vector<cudaStream_t> streams(n_images);
+    for (int i = 0; i < n_images; i++)
+        cudaStreamCreate(&streams[i]);
 
     // ── Submit all images to the GPU ──────────────────────────────────────
+    dim3 block(TILE_W, TILE_H);
+    dim3 grid((W + TILE_W - 1) / TILE_W, (H + TILE_H - 1) / TILE_H);
     for (int i = 0; i < n_images; i++)
     {
 
