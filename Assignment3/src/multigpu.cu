@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include <thrust/device_vector.h>
 #include <thrust/scan.h>
+#include <chrono>
+#include <thread>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // process_batch_on_device
