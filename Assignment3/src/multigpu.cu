@@ -167,6 +167,10 @@ void run_pipeline_multigpu(std::vector<ImageEntry> &batch)
         process_batch_on_device(batch, 0);
         return;
     }
+    
+    // warm up both gpus to exclude any one-time setup overheads from timing
+    cudaSetDevice(0); cudaFree(0);
+    cudaSetDevice(1); cudaFree(0);
 
     // TODO: Split `batch` into two sub-batches.
     //   GPU 0 gets the first N/2 images; GPU 1 gets the remainder.
