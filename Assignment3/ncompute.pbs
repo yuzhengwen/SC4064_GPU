@@ -1,0 +1,17 @@
+#!/bin/bash
+#PBS -N ncu_profile
+#PBS -l select=1:ncpus=8:mem=16gb:ngpus=1
+#PBS -l walltime=00:15:00
+#PBS -q normal
+#PBS -j oe
+#PBS -o ncu_profile.out
+#PBS -P personal
+
+cd $PBS_O_WORKDIR
+
+module load cuda
+
+ncu --set full \
+    --target-processes all \
+    --output ncu_report \
+    ./pipeline --input data/input --output output --single-gpu

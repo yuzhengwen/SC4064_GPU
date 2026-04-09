@@ -1,0 +1,13 @@
+#!/bin/bash
+#PBS -N profile_run
+#PBS -l select=1:ncpus=8:mem=16gb:ngpus=2
+#PBS -l walltime=00:10:00
+#PBS -q normal
+#PBS -j oe
+#PBS -o profile.out
+#PBS -P personal
+cd $PBS_O_WORKDIR
+module load cuda
+module load nvhpc
+make build
+make profile
