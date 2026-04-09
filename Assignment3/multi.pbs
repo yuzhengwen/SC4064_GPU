@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -N multi_check
-#PBS -l select=1:ncpus=8:mem=16gb:ngpus=1:gpu_model=A100
+#PBS -l select=1:ncpus=8:mem=16gb:ngpus=1
 #PBS -l walltime=00:10:00
 #PBS -q normal
 #PBS -j oe
