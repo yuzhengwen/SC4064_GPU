@@ -173,8 +173,15 @@ void run_pipeline_multigpu(std::vector<ImageEntry> &batch)
     std::vector<ImageEntry> sub1(batch.begin() + half, batch.end());
 
     // TODO: Process sub0 on GPU 0, then sub1 on GPU 1.
-    process_batch_on_device(sub0, 0);
-    process_batch_on_device(sub1, 1);
+    // process_batch_on_device(sub0, 0);
+    // process_batch_on_device(sub1, 1);
+
+    // Launch both GPUs in parallel threads
+    std::thread t0(process_batch_on_device, std::ref(sub0), 0);
+    std::thread t1(process_batch_on_device, std::ref(sub1), 1);
+
+    t0.join();
+    t1.join();
 }
 
 void run_pipeline_singlegpu(std::vector<ImageEntry> &batch)

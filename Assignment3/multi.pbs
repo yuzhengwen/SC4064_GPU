@@ -12,8 +12,5 @@ cd $PBS_O_WORKDIR
 module load cuda
 
 make clean
-make build
-
-make run
 
 make check
