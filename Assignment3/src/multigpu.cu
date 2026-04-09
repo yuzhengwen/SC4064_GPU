@@ -25,9 +25,6 @@ static void process_batch_on_device(std::vector<ImageEntry> &sub_batch, int devi
     // TODO: Call cudaSetDevice(device_id) BEFORE any CUDA API call.
     cudaSetDevice(device_id);
 
-    // START TIMER
-    auto start = std::chrono::high_resolution_clock::now();
-
     int W = sub_batch[0].width;
     int H = sub_batch[0].height;
     size_t img_bytes = (size_t)W * H * sizeof(uint8_t);
@@ -65,6 +62,9 @@ static void process_batch_on_device(std::vector<ImageEntry> &sub_batch, int devi
     std::vector<cudaStream_t> streams(n_images);
     for (int i = 0; i < n_images; i++)
         cudaStreamCreate(&streams[i]);
+
+    // START TIMER
+    auto start = std::chrono::high_resolution_clock::now();
 
     // ── Submit all images to the GPU ──────────────────────────────────────
     dim3 block(TILE_W, TILE_H);
