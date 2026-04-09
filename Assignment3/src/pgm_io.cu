@@ -31,7 +31,8 @@ bool pgm_load(const std::string& path, uint8_t** data, int* width, int* height) 
         fclose(f);
         return false;
     }
-    fgetc(f); // consume the single whitespace after maxval
+    //fgetc(f); // consume the single whitespace after maxval
+	{ int sep = fgetc(f); if (sep == '\r') fgetc(f); }
 
     size_t n = (size_t)(*width) * (*height);
     *data = new uint8_t[n];

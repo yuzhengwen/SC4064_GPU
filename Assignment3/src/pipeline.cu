@@ -18,58 +18,110 @@ __constant__ float c_gauss[5][5] = {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 1 — Gaussian Blur (shared memory tiling with halo cells)
 // ═════════════════════════════════════════════════════════════════════════════
+//
+// Background:
+//   Each output pixel is a weighted average of its 5x5 neighbourhood.
+//   Neighbouring output pixels share input pixels, so loading the input tile
+//   into shared memory reduces global memory traffic significantly.
+//   The shared tile must be larger than the output tile by GAUSS_RADIUS pixels
+//   on every side — these extra pixels are called "halo cells".
+//
+// Shared memory layout:
+//
+//   ┌────────────────────────────┐  ← (TILE_W + 2*GAUSS_RADIUS) wide
+//   │  halo  │  halo   │  halo   │  } GAUSS_RADIUS rows of halo
+//   ├────────┼─────────┼─────────┤
+//   │  halo  │ OUTPUT  │  halo   │  } TILE_H rows of output pixels
+//   ├────────┼─────────┼─────────┤
+//   │  halo  │  halo   │  halo   │  } GAUSS_RADIUS rows of halo
+//   └────────────────────────────┘
+//
+// Your tasks:
+//   1. Declare shared memory with the correct halo-extended dimensions.
+//   2. Map each thread to a global (x, y) position.
+//   3. Load the centre pixels AND halo pixels into shared memory cooperatively.
+//      (Some threads may need to load more than one pixel.)
+//   4. __syncthreads() before any computation.
+//   5. Apply the 5x5 convolution from shared memory for in-bounds threads.
+//   6. Write the result to `out`.
+//
+// ─────────────────────────────────────────────────────────────────────────────
 __global__ void gaussianBlurKernel(
     const uint8_t* __restrict__ in,
     uint8_t*       __restrict__ out,
     int width, int height)
 {
-    // Shared memory tile dimensions (centre + halo on each side).
-    const int SMEM_W = TILE_W + 2 * GAUSS_RADIUS;
-    const int SMEM_H = TILE_H + 2 * GAUSS_RADIUS;
+        // Shared memory tile dimensions (centre + halo on each side).
+    const int SMEM_W = TILE_W + 2 * GAUSS_RADIUS; 
+    const int SMEM_H = TILE_H + 2 * GAUSS_RADIUS; 
 
-    // [TASK 1] Shared memory array large enough for output tile + halo.
-    __shared__ uint8_t smem[SMEM_H][SMEM_W];
+    // TODO: Declare shared memory array of size SMEM_H x SMEM_W.
+	__shared__ uint8_t smem[SMEM_H][SMEM_W];
 
-    // [TASK 2] Global (x, y) output pixel this thread is responsible for.
+     // TODO: Compute the global (x, y) output pixel this thread is
+    //            responsible for.
     int out_x = blockIdx.x * TILE_W + threadIdx.x;
     int out_y = blockIdx.y * TILE_H + threadIdx.y;
 
-    // [TASK 3] Cooperatively load the full SMEM_H x SMEM_W input tile.
+    // TODO: Load shared memory cooperatively.
     //
-    // Top-left corner of the shared tile in global coordinates.
+    //   The input tile starts at global coordinates:
+    //     tile_start_x = blockIdx.x * TILE_W - GAUSS_RADIUS
+    //     tile_start_y = blockIdx.y * TILE_H - GAUSS_RADIUS
+    //
+    //   Each thread should load at least its own pixel at (threadIdx.x + GAUSS_RADIUS,
+    //   threadIdx.y + GAUSS_RADIUS) in shared memory, plus any halo pixels it is
+    //   responsible for. common strategy: iterate over the SMEM_H x SMEM_W region
+    //   using a strided loop over the linearised thread index.
+    //
+    //   Boundary condition: clamp out-of-bounds global coordinates to [0, width-1]
+    //   and [0, height-1] before indexing into `in`.
+
     int tile_start_x = blockIdx.x * TILE_W - GAUSS_RADIUS;
     int tile_start_y = blockIdx.y * TILE_H - GAUSS_RADIUS;
 
-    // Strided loop: each thread loads one or more pixels using its
-    // linearised ID within the block.
-    int tid        = threadIdx.y * TILE_W + threadIdx.x;
-    int block_size = TILE_W * TILE_H;
-    int smem_size  = SMEM_W * SMEM_H;
+    int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    int total_threads = blockDim.x * blockDim.y; 
+    int total_pixels  = SMEM_W * SMEM_H;          
 
-    for (int idx = tid; idx < smem_size; idx += block_size) {
-        int sm_row = idx / SMEM_W;
-        int sm_col = idx % SMEM_W;
+    for (int idx = tid; idx < total_pixels; idx += total_threads) {
+        int sm_y = idx / SMEM_W;
+        int sm_x = idx % SMEM_W;
 
-        // Clamp global coords to [0, width-1] / [0, height-1] (border replication).
-        int gx = min(max(tile_start_x + sm_col, 0), width  - 1);
-        int gy = min(max(tile_start_y + sm_row, 0), height - 1);
+        int gx = max(0, min(tile_start_x + sm_x, width - 1));
+        int gy = max(0, min(tile_start_y + sm_y, height - 1));
 
-        smem[sm_row][sm_col] = in[gy * width + gx];
+		smem[sm_y][sm_x] = in[gy * width + gx];
     }
 
-    // [TASK 4] Barrier — all data loaded before any thread reads smem.
-    __syncthreads();
+    // TODO: Synchronise all threads before computing the convolution.
 
-    // [TASK 5 & 6] 5x5 convolution; only write for in-bounds output pixels.
+    __syncthreads(); 
+
+    // TODO: Apply the 5x5 Gaussian convolution from shared memory.
+    //
+    //   Each thread computes one output pixel.
+    //     out_x = blockIdx.x * TILE_W + threadIdx.x;
+    //     out_y = blockIdx.y * TILE_H + threadIdx.y;
+    //   Only threads whose (out_x, out_y) is within [0, width) x [0, height)
+    //   should write to `out`.
+    //
+    //   Sum over ki = 0..4, kj = 0..4:
+    //     sum += c_gauss[ki][kj] * smem[threadIdx.y + ki][threadIdx.x + kj]
+    //
+    //   Clamp (use roundf) the result to [0, 255] and cast to uint8_t before storing
+    //   i.e., (uint8_t)min(max((int)roundf(sum), 0), 255);
+    
     if (out_x < width && out_y < height) {
         float sum = 0.f;
-        // threadIdx offsets are already at the centre of the halo region.
         for (int ki = 0; ki < 5; ki++) {
             for (int kj = 0; kj < 5; kj++) {
-                sum += c_gauss[ki][kj] * smem[threadIdx.y + ki][threadIdx.x + kj];
+                //sum += c_gauss[ki][kj] * smem[threadIdx.y + ki][threadIdx.x + kj];
+				sum += c_gauss[ki][kj] * (float)smem[threadIdx.y + ki][threadIdx.x + kj];
             }
         }
-        out[out_y * width + out_x] = (uint8_t)min(max((int)roundf(sum), 0), 255);
+        // FIX 3: Use roundf to match the reference implementation exactly
+        out[out_y * width + out_x] = (uint8_t)max(0, min((int)roundf(sum), 255));
     }
 }
 
@@ -78,10 +130,19 @@ __global__ void gaussianBlurKernel(
 // STAGE 2 — Sobel Edge Detection
 // ═════════════════════════════════════════════════════════════════════════════
 //
+// Background
+//   Two 3x3 kernels (Gx, Gy) measure intensity gradient in x and y directions.
+//   Gradient magnitude = sqrt(Gx^2 + Gy^2), clamped to [0, 255].
+//
 //   Gx = [[-1, 0, 1],     Gy = [[ 1,  2,  1],
 //         [-2, 0, 2],           [ 0,  0,  0],
 //         [-1, 0, 1]]           [-1, -2, -1]]
 //
+// Both Gx and Gy must be computed in this single kernel.
+// Shared memory tiling is optional but encouraged.
+// Use clamp-to-edge for boundary pixels.
+//
+// ─────────────────────────────────────────────────────────────────────────────
 __global__ void sobelKernel(
     const uint8_t* __restrict__ in,
     uint8_t*       __restrict__ out,
@@ -108,7 +169,8 @@ __global__ void sobelKernel(
 #undef FETCH
 
     float mag = sqrtf(gx*gx + gy*gy);
-    out[y * width + x] = (uint8_t)min(max((int)roundf(mag), 0), 255);
+    //out[y * width + x] = (uint8_t)min(max((int)roundf(mag), 0), 255);
+	out[y * width + x] = (uint8_t)min((int)mag, 255);
 }
 
 
@@ -116,9 +178,19 @@ __global__ void sobelKernel(
 // STAGE 3A — Histogram Kernel
 // ═════════════════════════════════════════════════════════════════════════════
 //
-// Uses a per-block shared histogram to reduce contention on the 256 global
-// counters (optional optimisation mentioned in the spec).
+// Background:
+//   Count how many pixels have each intensity value (0–255).
+//   Many threads will try to increment the same bin simultaneously,
+//   so atomic operations are required.
 //
+// `hist` is a device array of 256 unsigned ints, zero-initialised before launch.
+//
+// Optimisation hint (optional, but worth attempting):
+//   Use a per-block shared memory histogram (256 unsigned ints), accumulate
+//   locally with __atomicAdd on shared memory, then flush to global memory
+//   once per block. This reduces contention on the 256 global counters.
+//
+// ─────────────────────────────────────────────────────────────────────────────
 __global__ void histogramKernel(
     const uint8_t*  __restrict__ in,
     unsigned int*   hist,
@@ -154,14 +226,22 @@ __global__ void histogramKernel(
 
 
 // ═════════════════════════════════════════════════════════════════════════════
+// STAGE 3B — CDF on host (solution given in multigpu.cu)
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ═════════════════════════════════════════════════════════════════════════════
 // STAGE 3C — Equalisation Kernel
 // ═════════════════════════════════════════════════════════════════════════════
 //
-// new_val = round( (CDF[old_val] - cdf_min) / (W*H - cdf_min) * 255 )
+// Background:
+//   Remap each pixel using:
+//     new_val = round((CDF[old_val] - cdf_min) / (W*H - cdf_min) * 255)
 //
-// `cdf` comes from thrust::exclusive_scan over the histogram, so:
-//   cdf[0] = 0, cdf[i] = number of pixels with intensity < i.
+// `cdf` is a device array of 256 floats from thrust::exclusive_scan, so:
+//  cdf[i] = number of pixels with intensity STRICTLY LESS THAN i, cdf[0] = 0.
+//  cdf_min is the first non-zero value in cdf[], found on the host after the scan.
 //
+// ─────────────────────────────────────────────────────────────────────────────
 __global__ void equalizeKernel(
     const uint8_t* __restrict__ in,
     uint8_t*       __restrict__ out,

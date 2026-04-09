@@ -76,9 +76,9 @@ static void process_batch_on_device(std::vector<ImageEntry> &sub_batch, int devi
         gaussianBlurKernel<<<grid, block, 0, streams[i]>>>(
             d_in[i], d_blur[i], W, H);
 
+
         // TODO: Stage 2 Launch sobelKernel on streams[i].
-        sobelKernel<<<grid, block, 0, streams[i]>>>(
-            d_blur[i], d_sobel[i], W, H);
+        sobelKernel<<<grid, block, 0, streams[i]>>>(d_blur[i], d_sobel[i], W, H);
 
         // TODO: Zero-initialise d_hist[i] with cudaMemsetAsync on streams[i].
         cudaMemsetAsync(d_hist[i], 0, hist_bytes, streams[i]);
@@ -86,46 +86,31 @@ static void process_batch_on_device(std::vector<ImageEntry> &sub_batch, int devi
         // Stage 3
 
         // TODO: Stage 3A: Launch histogramKernel on streams[i].
-        histogramKernel<<<grid, block, 0, streams[i]>>>(
-            d_sobel[i], d_hist[i], W, H);
+        histogramKernel<<<grid, block, 0, streams[i]>>>( d_sobel[i], d_hist[i], W, H);
 
         // TODO: Stage 3B (you can directly use the code provided here or implement your own)
         //   CDF via thrust (thrust uses default stream — must sync first)
+        cudaStreamSynchronize(streams[i]);
+		
         //   Then compute the CDF (thrust calls execute on CPU):
-        //     thrust::device_ptr<unsigned int> hist_ptr(d_hist[i]);
-        //     thrust::device_ptr<float>        cdf_ptr(d_cdf[i]);
-        //     thrust::exclusive_scan(hist_ptr, hist_ptr + 256, cdf_ptr);
+		 thrust::device_ptr<unsigned int> hist_ptr(d_hist[i]);
+		 thrust::device_ptr<float>        cdf_ptr(d_cdf[i]);
+		 thrust::exclusive_scan(hist_ptr, hist_ptr + 256, cdf_ptr);
+		 
         //   Find cdf_min on the host.
         //   Copy d_cdf[i] back to a host array (synchronously is fine — it is
         //   only 256 floats), find the first non-zero entry, and pass it to
         //   equalizeKernel below.
-        //     float h_cdf[256];
-        //     cudaMemcpy(h_cdf, d_cdf[i], cdf_bytes, cudaMemcpyDeviceToHost);
-        //     float cdf_min = 0.f;
-        //     for (int b = 0; b < 256; b++) {
-        //         if (h_cdf[b] > 0.f) { cdf_min = h_cdf[b]; break; }
-        //      }
-        cudaStreamSynchronize(streams[i]);
-        thrust::device_ptr<unsigned int> hist_ptr(d_hist[i]);
-        thrust::device_ptr<float> cdf_ptr(d_cdf[i]);
-        thrust::exclusive_scan(hist_ptr, hist_ptr + 256, cdf_ptr);
-
-        float h_cdf[256];
-        cudaMemcpy(h_cdf, d_cdf[i], cdf_bytes, cudaMemcpyDeviceToHost);
-        float cdf_min = 0.f;
-        for (int b = 0; b < 256; b++)
-        {
-            if (h_cdf[b] > 0.f)
-            {
-                cdf_min = h_cdf[b];
-                break;
-            }
-        }
+		 float h_cdf[256];
+		 cudaMemcpy(h_cdf, d_cdf[i], cdf_bytes, cudaMemcpyDeviceToHost);
+		 float cdf_min = 0.f;
+		 for (int b = 0; b < 256; b++) {
+			 if (h_cdf[b] > 0.f) { cdf_min = h_cdf[b]; break; }
+		  }
 
         // TODO: Stage 3C Launch equalizeKernel on streams[i].
-        equalizeKernel<<<grid, block, 0, streams[i]>>>(
-            d_sobel[i], d_eq[i], d_cdf[i], cdf_min, W, H);
-
+        equalizeKernel<<<grid, block, 0, streams[i]>>>(d_sobel[i], d_eq[i], d_cdf[i], cdf_min, W, H);
+		
         // TODO: cudaMemcpyAsync device→host for the equalised output on streams[i].
         cudaMemcpyAsync(sub_batch[i].host_out, d_eq[i],
                         img_bytes, cudaMemcpyDeviceToHost, streams[i]);
